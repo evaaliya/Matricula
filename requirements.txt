@@ -1,0 +1,8 @@
+httpx>=0.25.0
+pydantic>=2.4.2
+python-dotenv>=1.0.0
+supabase>=2.0.2
+anthropic>=0.30.0
+farcaster>=0.7.11
+npm install @noble/ed25519@1.7.3
+pip install farcaster --break-system-packages
