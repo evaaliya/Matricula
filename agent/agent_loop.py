@@ -10,9 +10,11 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from farcaster_service.farcaster_client import FarcasterClient
 from wallet.privy_wallet import PrivyWallet
 from memory.vector_memory import VectorMemory
-from brain.decision_engine import make_decision, analyze_cast_for_engagement
+from brain.decision_engine import make_decision, analyze_cast_for_engagement, set_goal_context
 from metrics.engagement_tracker import extract_metrics, update_history, get_history, get_stats
 from brain.reflection import reflect, needs_reflection
+from goals.goal_tracker import evaluate as evaluate_goals, dashboard, get_goal_prompt
+from goals.spend_log import get_summary as get_spend_summary
 
 # ── Limits ──
 MAX_DAILY_CASTS = 30
@@ -218,6 +220,40 @@ class AutonomousAgent:
         else:
             print("   ⏭️ Not enough new data to reflect (need 5+ new casts)")
 
+    # ──────────────────── STEP 0.5: Check Goals ─────────────────
+    async def check_goals(self):
+        print("\n── 🎯 Step 0.5: Goal evaluation ──")
+        eng_stats = get_stats()
+        spend_stats = get_spend_summary()
+
+        # Get wallet balance
+        wallet_balance = 0.0
+        try:
+            balance_str = await self.wallet.get_balance()
+            # Try to parse balance from output
+            import re
+            match = re.search(r'(\d+\.\d+)\s*ETH', balance_str)
+            if match:
+                wallet_balance = float(match.group(1))
+        except Exception:
+            pass
+
+        report = await evaluate_goals(
+            engagement_stats=eng_stats,
+            spend_log=spend_stats,
+            wallet_balance=wallet_balance,
+            daily_spend=self.wallet.daily_spend
+        )
+
+        # Print dashboard
+        print(dashboard(report))
+
+        # Inject goal context into decision engine
+        goal_prompt = get_goal_prompt(report)
+        set_goal_context(goal_prompt)
+
+        return report
+
     # ──────────────────── MAIN RUN (single execution) ─────────────
     async def run(self):
         self._check_daily_reset()
@@ -229,11 +265,14 @@ class AutonomousAgent:
         # Step 0: Reflect on past performance (updates strategy)
         await self.self_reflect()
 
+        # Step 0.5: Evaluate goals (sets priority for this run)
+        goal_report = await self.check_goals()
+
         if not self._can_cast():
             print("🚫 Daily cast limit reached.")
             return
 
-        # Step 1: Make one original cast (uses updated strategy)
+        # Step 1: Make one original cast (uses updated strategy + goals)
         await self.post_original_cast()
 
         # Step 2: Respond to notifications/reactions
@@ -244,6 +283,7 @@ class AutonomousAgent:
 
         print(f"\n{'='*50}")
         print(f"✅ Run complete. Casts: {self.daily_casts}/{MAX_DAILY_CASTS}")
+        print(f"   Priority was: {goal_report.get('priority', '?').upper()}")
         print(f"{'='*50}")
 
     # ──────────────────── LEGACY: Loop mode (optional) ────────────

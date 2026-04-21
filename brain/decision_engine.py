@@ -18,7 +18,25 @@ def get_system_prompt() -> str:
     except Exception:
         pass  # No strategy yet — that's fine
 
+    # Layer 5: Inject goal context into prompt
+    try:
+        from goals.goal_tracker import _goal_prompt_cache
+        if _goal_prompt_cache:
+            base_prompt += _goal_prompt_cache
+            print("🎯 Goal context injected into prompt")
+    except Exception:
+        pass
+
     return base_prompt
+
+
+# Global cache for goal prompt (set by agent_loop before decisions)
+_goal_prompt_cache = ""
+
+def set_goal_context(goal_prompt: str):
+    """Called by agent_loop to set goal context for this run."""
+    global _goal_prompt_cache
+    _goal_prompt_cache = goal_prompt
 
 
 def build_context(mentions: list, feed: list, memories: list) -> str:
