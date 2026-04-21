@@ -31,24 +31,66 @@ class FarcasterClient:
                 print(f"Fetch my casts error: {e}")
                 return []
 
-    # ──────────────────── READ: Notifications ────────────────────
+    # ──────────────────── READ: Notifications (ALL types) ──────────
     async def fetch_notifications(self):
-        """Fetch mentions, replies, and reactions directed at our FID."""
+        """Fetch ALL notifications: mentions, replies, likes, recasts, follows."""
         async with httpx.AsyncClient(timeout=15) as client:
             try:
                 res = await client.get(
                     f"{self.base_url}/notifications",
                     headers=self.headers,
-                    params={"fid": self.fid, "type": "mentions,replies"}
+                    params={"fid": self.fid}  # No type filter = get everything
                 )
                 res.raise_for_status()
                 data = res.json()
                 notifs = data.get("notifications", [])
-                print(f"📬 Fetched {len(notifs)} notifications")
+                
+                # Count by type
+                types = {}
+                for n in notifs:
+                    t = n.get("type", "unknown")
+                    types[t] = types.get(t, 0) + 1
+                type_str = ", ".join(f"{v} {k}" for k, v in types.items())
+                print(f"📬 Fetched {len(notifs)} notifications ({type_str})")
                 return notifs
             except Exception as e:
                 print(f"Fetch notifications error: {e}")
                 return []
+
+    # ──────────────────── UTIL: Check if user is real ─────────────
+    @staticmethod
+    def is_real_user(author: dict) -> bool:
+        """Filter out bots by checking score and activity."""
+        score = author.get("score", 0)
+        if isinstance(score, (int, float)) and score < 0.2:
+            return False
+        # Check for spam patterns in username
+        username = author.get("username", "")
+        if any(pat in username for pat in ["bot", "spam", "airdrop", "token"]):
+            if "robot" not in username:  # don't filter "robot" as it's legit
+                return False
+        return True
+
+    # ──────────────────── WRITE: Follow user ──────────────────────
+    async def follow_user(self, target_fid: int):
+        """Follow a user by FID."""
+        from config import FARCASTER_SIGNER_UUID
+        async with httpx.AsyncClient(timeout=15) as client:
+            try:
+                res = await client.post(
+                    f"{self.base_url}/user/follow",
+                    headers=self.headers,
+                    json={
+                        "signer_uuid": FARCASTER_SIGNER_UUID,
+                        "target_fids": [target_fid]
+                    }
+                )
+                res.raise_for_status()
+                print(f"✅ Followed FID {target_fid}")
+                return True
+            except Exception as e:
+                print(f"Follow error: {e}")
+                return False
 
     # ──────────────────── READ: Trending (global) ────────────────
     async def fetch_trending_feed(self, limit: int = 25):

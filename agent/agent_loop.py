@@ -96,7 +96,7 @@ class AutonomousAgent:
         else:
             print("   ⏭️ No cast decision")
 
-    # ──────────────────── STEP 2: Respond to reactions/notifs ─────
+    # ──────────────────── STEP 2: Respond to ALL notifications ─────
     async def handle_notifications(self):
         print("\n── 📬 Step 2: Checking notifications ──")
         notifs = await self.fc.fetch_notifications()
@@ -105,30 +105,72 @@ class AutonomousAgent:
             print("   No new notifications")
             return
 
-        for notif in notifs[:10]:
-            if not self._can_cast():
-                break
+        followed_back = 0
+        replied = 0
+        skipped_bots = 0
 
+        for notif in notifs[:20]:
+            notif_type = notif.get("type", "unknown")
             cast = notif.get("cast", notif)
-            cast_hash = cast.get("hash", "")
 
-            if cast_hash in self.replied_hashes:
+            # ── FOLLOWS: Follow back real users ──
+            if notif_type == "follows":
+                follows = notif.get("follows", [])
+                for f in (follows if isinstance(follows, list) else []):
+                    follower = f.get("user", f)
+                    if not self.fc.is_real_user(follower):
+                        skipped_bots += 1
+                        continue
+                    fid = follower.get("fid")
+                    username = follower.get("username", "?")
+                    if fid:
+                        print(f"   👤 New follower: @{username} — following back")
+                        await self.fc.follow_user(fid)
+                        followed_back += 1
                 continue
 
-            author = cast.get("author", {})
-            username = author.get("username", "?")
-            text = cast.get("text", "")
+            # ── LIKES / RECASTS: Track but don't reply ──
+            if notif_type in ("likes", "recasts"):
+                continue  # Just logged by fetch_notifications count
 
-            print(f"   💬 @{username}: {text[:80]}...")
+            # ── MENTIONS / REPLIES: Respond if real user ──
+            if notif_type in ("mention", "reply"):
+                if not self._can_cast():
+                    break
 
-            memories = await self.mem.semantic_search(text)
-            decision = make_decision([cast], [], memories)
+                cast_hash = cast.get("hash", "")
+                if cast_hash in self.replied_hashes:
+                    continue
 
-            print(f"   🧠 {decision.get('thoughts', '')[:100]}")
-            await self.execute_actions(decision.get("actions", []))
+                author = cast.get("author", {})
+                username = author.get("username", "?")
+                text = cast.get("text", "")
 
-            # Store interaction in memory
-            await self.mem.store_memory(str(author.get("fid", "")), text)
+                # Skip bots
+                if not self.fc.is_real_user(author):
+                    print(f"   🤖 Skipping bot @{username}")
+                    skipped_bots += 1
+                    continue
+
+                # Skip spam mentions (token/airdrop bait)
+                if any(spam in text.lower() for spam in ["token bag", "reward", "airdrop", "claim your"]):
+                    print(f"   🚫 Skipping spam from @{username}")
+                    skipped_bots += 1
+                    continue
+
+                print(f"   💬 [{notif_type}] @{username}: {text[:80]}...")
+
+                memories = await self.mem.semantic_search(text)
+                decision = make_decision([cast], [], memories)
+
+                print(f"   🧠 {decision.get('thoughts', '')[:100]}")
+                await self.execute_actions(decision.get("actions", []))
+                replied += 1
+
+                # Store interaction in memory
+                await self.mem.store_memory(str(author.get("fid", "")), text)
+
+        print(f"   📊 Replied: {replied}, Followed back: {followed_back}, Bots skipped: {skipped_bots}")
 
     # ──────────────────── STEP 3: Engage with feed (30 casts) ─────
     async def engage_feed(self):
