@@ -13,6 +13,7 @@ from memory.vector_memory import VectorMemory
 from brain.decision_engine import make_decision, analyze_cast_for_engagement, set_goal_context
 from metrics.engagement_tracker import extract_metrics, update_history, get_history, get_stats
 from brain.reflection import reflect, needs_reflection
+from brain.energy_manager import get_energy_manager
 from goals.goal_tracker import evaluate as evaluate_goals, dashboard, get_goal_prompt
 from goals.spend_log import get_summary as get_spend_summary
 
@@ -299,33 +300,42 @@ class AutonomousAgent:
     # ──────────────────── MAIN RUN (single execution) ─────────────
     async def run(self):
         self._check_daily_reset()
+        energy = get_energy_manager()
 
         print(f"\n{'='*50}")
         print(f"🤖 @matricula — single run")
+        print(f"   {energy.status_line()}")
         print(f"{'='*50}")
 
-        # Step 0: Reflect on past performance (updates strategy)
-        await self.self_reflect()
+        # Step 0: Reflect (skip if energy is low — reflection costs tokens)
+        if not energy.should_skip_heavy():
+            await self.self_reflect()
+        else:
+            print("\n── 🪞 Step 0: Skipped (low energy) ──")
 
-        # Step 0.5: Evaluate goals (sets priority for this run)
+        # Step 0.5: Evaluate goals (cheap — no LLM call)
         goal_report = await self.check_goals()
 
         if not self._can_cast():
             print("🚫 Daily cast limit reached.")
             return
 
-        # Step 1: Make one original cast (uses updated strategy + goals)
+        # Step 1: Make one original cast
         await self.post_original_cast()
 
-        # Step 2: Respond to notifications/reactions
+        # Step 2: Respond to notifications/reactions (always do this)
         await self.handle_notifications()
 
-        # Step 3: Engage with feed (up to 30 casts, no sleeping)
-        await self.engage_feed()
+        # Step 3: Engage with feed (skip if energy is critical)
+        if energy.should_skip_heavy():
+            print(f"\n── 🌍 Step 3: Skipped (energy {energy.energy_ratio():.0%} — survival mode) ──")
+        else:
+            await self.engage_feed()
 
         print(f"\n{'='*50}")
         print(f"✅ Run complete. Casts: {self.daily_casts}/{MAX_DAILY_CASTS}")
-        print(f"   Priority was: {goal_report.get('priority', '?').upper()}")
+        print(f"   Priority: {goal_report.get('priority', '?').upper()}")
+        print(f"   {energy.status_line()}")
         print(f"{'='*50}")
 
     # ──────────────────── LEGACY: Loop mode (optional) ────────────

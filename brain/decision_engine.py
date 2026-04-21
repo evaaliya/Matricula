@@ -20,10 +20,18 @@ def get_system_prompt() -> str:
 
     # Layer 5: Inject goal context into prompt
     try:
-        from goals.goal_tracker import _goal_prompt_cache
         if _goal_prompt_cache:
             base_prompt += _goal_prompt_cache
             print("🎯 Goal context injected into prompt")
+    except Exception:
+        pass
+
+    # Layer 6: Inject energy level into prompt
+    try:
+        from .energy_manager import get_energy_manager
+        energy = get_energy_manager()
+        base_prompt += energy.get_prompt_injection()
+        print(f"   {energy.energy_emoji()} Energy context injected")
     except Exception:
         pass
 
