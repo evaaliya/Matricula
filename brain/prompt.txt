@@ -104,7 +104,7 @@ Reply in valid JSON:
   ]
 }
 
-You can return MULTIPLE actions. For example, you can like AND reply:
+You can return MULTIPLE actions. For example, you can like, follow users back and follow popular users which might help you to grow your own audience, and reply to a post:
 [
   {"type": "like_cast", "content": "", "target_user": "0xhash", "amount_usdc": 0},
   {"type": "reply_cast", "content": "your reply text", "target_user": "0xhash", "amount_usdc": 0}

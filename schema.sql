@@ -23,3 +23,35 @@ create table tip_ledger (
   token text not null,
   tx_hash text
 );
+
+-- Main memory 🧠
+create table memories (
+  id uuid primary key default gen_random_uuid(),
+  type text, 
+  content text, 
+  embedding vector(1024), 
+  created_at timestamp default now(),
+  metadata jsonb 
+); 
+
+--SQL in Supabase
+create function match_memories (
+  query_embedding vector(1024),
+  match_type text,
+  match_count int
+)
+returns table (
+  id uuid,
+  content text,
+  similarity float
+) 
+language sql
+as $$
+  select 
+      id, content,
+      1 - (query_embedding <=> embedding) as similarity
+  from memories 
+  where type = match_type
+  order by embedding <-> query_embedding
+  limit match_count;
+$$; 

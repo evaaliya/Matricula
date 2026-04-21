@@ -93,7 +93,7 @@ class AutonomousAgent:
             print("   🚫 Daily limit reached")
             return
 
-        memories = await self.mem.semantic_search("what should I post about today")
+        memories = self.mem.remember_for_post_creation("what should I post about today")
         decision = make_decision([], [], memories)
 
         actions = decision.get("actions", [])
@@ -167,7 +167,7 @@ class AutonomousAgent:
 
                 print(f"   💬 [{notif_type}] @{username}: {text[:80]}...")
 
-                memories = await self.mem.semantic_search(text)
+                memories = self.mem.remember_for_post_creation(text)
                 decision = make_decision([cast], [], memories)
 
                 print(f"   🧠 {decision.get('thoughts', '')[:100]}")
@@ -175,7 +175,7 @@ class AutonomousAgent:
                 replied += 1
 
                 # Store interaction in memory
-                await self.mem.store_memory(str(author.get("fid", "")), text)
+                self.mem.remember_post(text, {"fid": str(author.get("fid", ""))})
 
         print(f"   📊 Replied: {replied}, Followed back: {followed_back}, Bots skipped: {skipped_bots}")
 
@@ -228,7 +228,7 @@ class AutonomousAgent:
 
             print(f"\n   👀 @{username}: {text[:80]}...")
 
-            memories = await self.mem.semantic_search(text)
+            memories = self.mem.remember_for_post_creation(text)
             decision = analyze_cast_for_engagement(cast, memories)
 
             action_type = decision.get("actions", [{}])[0].get("type", "none")

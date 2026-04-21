@@ -38,3 +38,19 @@ def generate_agent_decision(context: str, system_prompt: str) -> Dict[str, Any]:
             "validation": "Error",
             "actions": [{"type": "none", "content": "", "target_user": "", "amount_usdc": 0}]
         }
+def get_embedding(text: str) -> list:
+    """Get text embedding using Cohere's free embedding model."""
+    try:
+        import os
+        import cohere
+        co = cohere.ClientV2(os.getenv("COHERE_API_KEY"))
+        response = co.embed(
+            texts=[text],
+            model="embed-english-v3.0",
+            input_type="search_document",
+            embedding_types=["float"]
+        )
+        return response.embeddings.float_[0]
+    except Exception as e:
+        print(f"⚠️ Embedding error: {e} — using zero vector")
+        return [0.0] * 1024
