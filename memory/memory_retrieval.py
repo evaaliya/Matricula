@@ -2,6 +2,8 @@ from .embeddings import embed
 from .supabase_client import supabase 
 
 def search_memory(query: str, memory_type: str, limit=5):
+    if not supabase:
+        return []  # Supabase not configured
     query_vector = embed(query)
 
     result = supabase.rpc(
@@ -11,6 +13,6 @@ def search_memory(query: str, memory_type: str, limit=5):
             "match_type": memory_type,
             "match_count": limit,
         }
-    ) .execute()
+    ).execute()
 
     return result.data
