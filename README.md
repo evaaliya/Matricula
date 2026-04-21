@@ -61,8 +61,8 @@ content-creator-agent/
 ### 1. Clone & Install
 
 ```bash
-git clone https://github.com/evaaliya/matricula.git
-cd matricula
+git clone https://github.com/evaaliya/Matricula.git
+cd Matricula
 
 # Python dependencies
 pip install -r requirements.txt
