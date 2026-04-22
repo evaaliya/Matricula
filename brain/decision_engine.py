@@ -35,16 +35,35 @@ def get_system_prompt() -> str:
     except Exception:
         pass
 
+    # Layer 7: Inject relevant memories (only for original posts)
+    try:
+        if _memory_context_cache:
+            base_prompt += f"\n\nRELEVANT PAST EXPERIENCE:\n{_memory_context_cache}\n\nUse past successes to guide your content. Avoid repeating what didn't work."
+            print("🧠 Memory context injected into prompt")
+    except Exception:
+        pass
+
     return base_prompt
 
 
-# Global cache for goal prompt (set by agent_loop before decisions)
+# Global caches (set by agent_loop before decisions)
 _goal_prompt_cache = ""
+_memory_context_cache = ""
 
 def set_goal_context(goal_prompt: str):
     """Called by agent_loop to set goal context for this run."""
     global _goal_prompt_cache
     _goal_prompt_cache = goal_prompt
+
+def set_memory_context(memory_text: str):
+    """Called by agent_loop to inject memory before original post decisions."""
+    global _memory_context_cache
+    _memory_context_cache = memory_text
+
+def clear_memory_context():
+    """Clear after use so replies don't get stale memory."""
+    global _memory_context_cache
+    _memory_context_cache = ""
 
 
 def build_context(mentions: list, feed: list, memories: list) -> str:

@@ -10,7 +10,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from farcaster_service.farcaster_client import FarcasterClient
 from wallet.privy_wallet import PrivyWallet
 from memory.vector_memory import VectorMemory
-from brain.decision_engine import make_decision, analyze_cast_for_engagement, set_goal_context
+from brain.decision_engine import make_decision, analyze_cast_for_engagement, set_goal_context, set_memory_context, clear_memory_context
 from metrics.engagement_tracker import extract_metrics, update_history, get_history, get_stats
 from brain.reflection import reflect, needs_reflection
 from brain.energy_manager import get_energy_manager
@@ -33,6 +33,7 @@ class AutonomousAgent:
         self.daily_casts = 0
         self.daily_reset_date = datetime.date.today()
         self.replied_hashes = set()  # avoid double-replying in same session
+        self._posted_research_today = False
 
     def _check_daily_reset(self):
         """Reset counter at midnight."""
@@ -42,6 +43,7 @@ class AutonomousAgent:
             self.daily_casts = 0
             self.daily_reset_date = today
             self.replied_hashes.clear()
+            self._posted_research_today = False
 
     def _can_cast(self) -> bool:
         return self.daily_casts < MAX_DAILY_CASTS
@@ -93,15 +95,75 @@ class AutonomousAgent:
             print("   🚫 Daily limit reached")
             return
 
+        # Retrieve past experience for smarter posting
+        past_successes = self.mem.recall_what_worked("AI web3 engagement")
+        if past_successes:
+            memory_text = "\n".join([f"- {m['content']}" for m in past_successes])
+            set_memory_context(memory_text)
+        else:
+            set_memory_context("No past experience yet — experiment freely.")
+
         memories = self.mem.remember_for_post_creation("what should I post about today")
         decision = make_decision([], [], memories)
+
+        # Clear memory context so replies don't get it
+        clear_memory_context()
 
         actions = decision.get("actions", [])
         if actions:
             print(f"   🧠 {decision.get('thoughts', '')[:100]}")
             await self.execute_actions(actions)
+
+            # Store own cast in memory for learning
+            for a in actions:
+                if a.get("type") == "publish_cast" and a.get("content"):
+                    self.mem.remember_my_cast(
+                        cast_text=a["content"],
+                        cast_hash="pending",  # Hash not yet available
+                        metrics={"posted_at": str(datetime.datetime.utcnow())}
+                    )
+                    print("   💾 Own cast stored in memory")
         else:
             print("   ⏭️ No cast decision")
+
+    # ──────────────────── STEP 1.5: Share research ──────────────────
+    async def post_research_cast(self):
+        print("\n── 📚 Step 1.5: Research cast ──")
+        if not self._can_cast():
+            print("   🚫 Daily limit reached")
+            return
+
+        try:
+            from research.paper_caster import pick_and_cast
+            result = await pick_and_cast()
+
+            if result and result.get("content"):
+                cast_text = result["content"]
+                print(f"   📝 Research cast: {cast_text[:80]}...")
+
+                # Post it
+                res = await self.fc.publish_cast(cast_text)
+                if res:
+                    self.daily_casts += 1
+                    self._posted_research_today = True
+                    print("   ✅ Research cast published!")
+
+                    # Store in memory
+                    source_item = result.get("source_item", {})
+                    self.mem.remember_my_cast(
+                        cast_text=cast_text,
+                        cast_hash="research",
+                        metrics={
+                            "type": "research",
+                            "source": source_item.get("source", "unknown"),
+                            "title": source_item.get("title", ""),
+                            "posted_at": str(datetime.datetime.utcnow())
+                        }
+                    )
+            else:
+                print("   ⏭️ No interesting research found this cycle")
+        except Exception as e:
+            print(f"   ⚠️ Research cast error: {e}")
 
     # ──────────────────── STEP 2: Respond to ALL notifications ─────
     async def handle_notifications(self):
@@ -328,6 +390,12 @@ class AutonomousAgent:
 
         # Step 1: Make one original cast
         await self.post_original_cast()
+
+        # Step 1.5: Share research (once per day)
+        if not self._posted_research_today and not energy.should_skip_heavy():
+            await self.post_research_cast()
+        elif self._posted_research_today:
+            print("\n── 📚 Step 1.5: Research already posted today ──")
 
         # Step 2: Respond to notifications/reactions (always do this)
         await self.handle_notifications()
