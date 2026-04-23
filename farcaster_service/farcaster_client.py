@@ -1,5 +1,8 @@
 import httpx
 import os
+import subprocess
+import json
+import asyncio
 from config import FARCASTER_FID, NEYNAR_API_KEY
 
 
@@ -12,6 +15,49 @@ class FarcasterClient:
         }
         self.base_url = "https://api.neynar.com/v2/farcaster"
         self.fid = FARCASTER_FID
+
+    async def _get_cast_author_fid(self, cast_hash: str) -> int:
+        async with httpx.AsyncClient(timeout=15) as client:
+            try:
+                res = await client.get(
+                    f"{self.base_url}/cast",
+                    headers=self.headers,
+                    params={"identifier": cast_hash, "type": "hash"}
+                )
+                res.raise_for_status()
+                data = res.json()
+                return data["cast"]["author"]["fid"]
+            except Exception as e:
+                print(f"Error fetching cast author: {e}")
+                return 0
+
+    async def _execute_js_write(self, payload: dict) -> dict:
+        try:
+            def run_sync():
+                script_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "farcaster_write.mjs")
+                result = subprocess.run(
+                    ["node", script_path, json.dumps(payload)],
+                    capture_output=True,
+                    text=True
+                )
+                if result.returncode != 0:
+                    print(f"JS Script Error: {result.stderr}")
+                    return None
+                try:
+                    out_str = result.stdout
+                    start = out_str.find('{')
+                    end = out_str.rfind('}')
+                    if start != -1 and end != -1:
+                        return json.loads(out_str[start:end+1])
+                    return json.loads(out_str)
+                except json.JSONDecodeError:
+                    print(f"JS Script Invalid Output: {result.stdout}")
+                    return None
+            
+            return await asyncio.to_thread(run_sync)
+        except Exception as e:
+            print(f"Execute JS write error: {e}")
+            return None
 
     # ──────────────────── READ: My own casts (for metrics) ────────
     async def fetch_my_casts(self, limit: int = 50):
@@ -75,67 +121,42 @@ class FarcasterClient:
     # ──────────────────── WRITE: Follow user ──────────────────────
     async def follow_user(self, target_fid: int):
         """Follow a user by FID."""
-        from config import FARCASTER_SIGNER_UUID
-        async with httpx.AsyncClient(timeout=15) as client:
-            try:
-                res = await client.post(
-                    f"{self.base_url}/user/follow",
-                    headers=self.headers,
-                    json={
-                        "signer_uuid": os.getenv("FARCASTER_SIGNER_UUID"),
-                        "target_fids": [target_fid]
-                    }
-                )
-                res.raise_for_status()
-                print(f"✅ Followed FID {target_fid}")
-                return True
-            except Exception as e:
-                print(f"Follow error: {e}")
-                return False
+        res = await self._execute_js_write({
+            "action": "follow_user",
+            "target_fid": target_fid
+        })
+        if res and res.get("success"):
+            print(f"✅ Followed FID {target_fid}")
+            return True
+        return False
 
     # ──────────────────── WRITE: Like a cast ──────────────────────
     async def like_cast(self, cast_hash: str):
         """Like (react to) a cast."""
-        from config import FARCASTER_SIGNER_UUID
-        async with httpx.AsyncClient(timeout=15) as client:
-            try:
-                res = await client.post(
-                    f"{self.base_url}/reaction",
-                    headers=self.headers,
-                    json={
-                        "signer_uuid": os.getenv("FARCASTER_SIGNER_UUID"),
-                        "reaction_type": "like",
-                        "target": cast_hash
-                    }
-                )
-                res.raise_for_status()
-                print(f"❤️ Liked {cast_hash[:10]}...")
-                return True
-            except Exception as e:
-                print(f"Like error: {e}")
-                return False
+        target_fid = await self._get_cast_author_fid(cast_hash)
+        res = await self._execute_js_write({
+            "action": "like_cast",
+            "target_hash": cast_hash,
+            "target_fid": target_fid
+        })
+        if res and res.get("success"):
+            print(f"❤️ Liked {cast_hash[:10]}...")
+            return True
+        return False
 
     # ──────────────────── WRITE: Recast ───────────────────────────
     async def recast(self, cast_hash: str):
         """Recast (share) a cast."""
-        from config import FARCASTER_SIGNER_UUID
-        async with httpx.AsyncClient(timeout=15) as client:
-            try:
-                res = await client.post(
-                    f"{self.base_url}/reaction",
-                    headers=self.headers,
-                    json={
-                        "signer_uuid": os.getenv("FARCASTER_SIGNER_UUID"),
-                        "reaction_type": "recast",
-                        "target": cast_hash
-                    }
-                )
-                res.raise_for_status()
-                print(f"🔁 Recasted {cast_hash[:10]}...")
-                return True
-            except Exception as e:
-                print(f"Recast error: {e}")
-                return False
+        target_fid = await self._get_cast_author_fid(cast_hash)
+        res = await self._execute_js_write({
+            "action": "recast",
+            "target_hash": cast_hash,
+            "target_fid": target_fid
+        })
+        if res and res.get("success"):
+            print(f"🔁 Recasted {cast_hash[:10]}...")
+            return True
+        return False
 
     # ──────────────────── READ: Trending (global) ────────────────
     async def fetch_trending_feed(self, limit: int = 25):
@@ -191,36 +212,25 @@ class FarcasterClient:
 
     # ──────────────────── WRITE: Publish cast ────────────────────
     async def publish_cast(self, text: str):
-        async with httpx.AsyncClient(timeout=15) as client:
-            try:
-                res = await client.post(
-                    f"{self.base_url}/cast",
-                    headers=self.headers,
-                    json={"text": text, "signer_uuid": FARCASTER_SIGNER_UUID}
-                )
-                res.raise_for_status()
-                print("✅ Cast published!")
-                return res.json()
-            except Exception as e:
-                print(f"Publish cast error: {e}")
-                return None
+        res = await self._execute_js_write({
+            "action": "publish_cast",
+            "text": text
+        })
+        if res and res.get("success"):
+            print("✅ Cast published!")
+            return res
+        return None
 
     # ──────────────────── WRITE: Reply to cast ───────────────────
     async def reply_cast(self, text: str, parent_hash: str):
-        async with httpx.AsyncClient(timeout=15) as client:
-            try:
-                res = await client.post(
-                    f"{self.base_url}/cast",
-                    headers=self.headers,
-                    json={
-                        "text": text,
-                        "signer_uuid": os.getenv("FARCASTER_SIGNER_UUID"),
-                        "parent": parent_hash
-                    }
-                )
-                res.raise_for_status()
-                print(f"✅ Reply published to {parent_hash[:10]}...")
-                return res.json()
-            except Exception as e:
-                print(f"Reply error: {e}")
-                return None
+        parent_fid = await self._get_cast_author_fid(parent_hash)
+        res = await self._execute_js_write({
+            "action": "reply_cast",
+            "text": text,
+            "parent_hash": parent_hash,
+            "parent_fid": parent_fid
+        })
+        if res and res.get("success"):
+            print(f"✅ Reply published to {parent_hash[:10]}...")
+            return res
+        return None

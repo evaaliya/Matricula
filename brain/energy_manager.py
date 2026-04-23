@@ -22,7 +22,7 @@ CLAUDE_PRICING = {
 
 
 class EnergyManager:
-    def __init__(self, daily_budget_usd: float = 0.50):
+    def __init__(self, daily_budget_usd: float = 1.00):
         self.daily_budget = daily_budget_usd
         self.spent_today = 0.0
         self.calls_today = 0

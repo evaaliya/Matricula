@@ -63,7 +63,15 @@ LINK: {url}
 MODE: research_sharing
 {content}
 INSTRUCTION: {instruction}
-IMPORTANT: Return type "publish_cast" with content under 280 chars. Include the URL in the content.
+IMPORTANT: You MUST return your response as a JSON object with the following structure:
+{{
+  "actions": [
+    {{
+      "type": "publish_cast",
+      "content": "<your cast text here, including the URL, under 280 chars>"
+    }}
+  ]
+}}
 """
 
     system_prompt = (

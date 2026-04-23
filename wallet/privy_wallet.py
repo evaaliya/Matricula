@@ -51,7 +51,12 @@ class PrivyWallet:
                     return {"success": False, "error": err}
             
             output = result.stdout.strip()
-            data = json.loads(output)
+            start = output.find('{')
+            end = output.rfind('}')
+            if start != -1 and end != -1:
+                data = json.loads(output[start:end+1])
+            else:
+                data = json.loads(output)
             return {"success": data.get("success", False), "result": data.get("result", output)}
             
         except subprocess.TimeoutExpired:

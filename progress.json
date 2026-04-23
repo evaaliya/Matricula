@@ -1,0 +1,62 @@
+[
+  {
+    "timestamp": "2026-04-23T22:46:40.413127",
+    "followers": 5,
+    "following": 5,
+    "neynar_score": 0.21,
+    "engagement_rate": 0.32,
+    "influence_score": 6,
+    "patron_score": 0,
+    "treasury_score": 61,
+    "priority": "patron",
+    "wallet_balance": 0.000226808765132288
+  },
+  {
+    "timestamp": "2026-04-23T23:03:02.990738",
+    "followers": 5,
+    "following": 5,
+    "neynar_score": 0.21,
+    "engagement_rate": 0.32,
+    "influence_score": 6,
+    "patron_score": 0,
+    "treasury_score": 61,
+    "priority": "patron",
+    "wallet_balance": 0.000226808765132288
+  },
+  {
+    "timestamp": "2026-04-23T23:15:22.993248",
+    "followers": 5,
+    "following": 5,
+    "neynar_score": 0.21,
+    "engagement_rate": 0.36,
+    "influence_score": 6,
+    "patron_score": 0,
+    "treasury_score": 61,
+    "priority": "patron",
+    "wallet_balance": 0.000226808765132288
+  },
+  {
+    "timestamp": "2026-04-23T23:50:41.611117",
+    "followers": 5,
+    "following": 5,
+    "neynar_score": 0.21,
+    "engagement_rate": 0.36,
+    "influence_score": 6,
+    "patron_score": 0,
+    "treasury_score": 61,
+    "priority": "patron",
+    "wallet_balance": 0.000226808765132288
+  },
+  {
+    "timestamp": "2026-04-23T23:53:09.741070",
+    "followers": 5,
+    "following": 5,
+    "neynar_score": 0.21,
+    "engagement_rate": 0.36,
+    "influence_score": 6,
+    "patron_score": 0,
+    "treasury_score": 61,
+    "priority": "patron",
+    "wallet_balance": 0.000226808765132288
+  }
+]
