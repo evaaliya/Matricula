@@ -12,7 +12,7 @@ def generate_agent_decision(context: str, system_prompt: str) -> Dict[str, Any]:
 
     try:
         response = anthropic.messages.create(
-            model="claude-sonnet-4-6",
+            model="claude-opus-4-7",
             max_tokens=1000,
             system=system_prompt,
             messages=[

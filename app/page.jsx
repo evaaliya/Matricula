@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import sdk from '@farcaster/frame-sdk';
-import AssetGallery from '../components/AssetGallery';
+import { sdk } from '@farcaster/miniapp-sdk';
 import BalanceWidget from '../components/BalanceWidget';
 
 export default function Page() {
@@ -33,7 +32,6 @@ export default function Page() {
         <BalanceWidget />
       </header>
 
-      <AssetGallery />
     </main>
   );
 }

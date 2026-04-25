@@ -1,9 +1,9 @@
 {
-  "date": "2026-04-23",
-  "spent_today": 0.818184,
-  "calls_today": 64,
-  "total_input_tokens": 199568,
-  "total_output_tokens": 14632,
-  "energy_left": 0.181816,
-  "energy_ratio": 0.1818
+  "date": "2026-04-25",
+  "spent_today": 0.913386,
+  "calls_today": 67,
+  "total_input_tokens": 241662,
+  "total_output_tokens": 12560,
+  "energy_left": 0.086614,
+  "energy_ratio": 0.0866
 }

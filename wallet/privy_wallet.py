@@ -5,7 +5,7 @@ import os
 import datetime
 
 # Limits for autonomous spending (in ETH)
-MAX_TIP_PER_TX = 0.005
+MAX_TIP_PER_TX = 0.00000431  # ~0.01 USDC
 MAX_DAILY_SPEND = 0.02
 
 # Replaced npx CLI with Node.js Server SDK wrapper
@@ -51,10 +51,9 @@ class PrivyWallet:
                     return {"success": False, "error": err}
             
             output = result.stdout.strip()
-            start = output.find('{')
-            end = output.rfind('}')
-            if start != -1 and end != -1:
-                data = json.loads(output[start:end+1])
+            lines = [line for line in output.split('\n') if line.strip().startswith('{')]
+            if lines:
+                data = json.loads(lines[-1])
             else:
                 data = json.loads(output)
             return {"success": data.get("success", False), "result": data.get("result", output)}
@@ -118,7 +117,7 @@ class PrivyWallet:
 
         result = await asyncio.to_thread(
             self._run_node,
-            "eth_sendTransaction", payload
+            "executeAgentAction", payload
         )
 
         if result["success"]:

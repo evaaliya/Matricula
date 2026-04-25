@@ -31,6 +31,30 @@ class FarcasterClient:
                 print(f"Error fetching cast author: {e}")
                 return 0
 
+    async def get_user_address(self, username: str) -> str:
+        """Fetch verified ETH address for a user via Neynar."""
+        import httpx
+        async with httpx.AsyncClient(timeout=15) as client:
+            try:
+                res = await client.get(
+                    f"{self.base_url}/user/search",
+                    headers=self.headers,
+                    params={"q": username, "limit": 1}
+                )
+                res.raise_for_status()
+                data = res.json()
+                if not data["result"]["users"]:
+                    return ""
+                user = data["result"]["users"][0]
+                if user.get("verifications"):
+                    return user["verifications"][0]
+                elif user.get("custody_address"):
+                    return user["custody_address"]
+                return ""
+            except Exception as e:
+                print(f"Error fetching user address: {e}")
+                return ""
+
     async def _execute_js_write(self, payload: dict) -> dict:
         try:
             def run_sync():
@@ -44,11 +68,11 @@ class FarcasterClient:
                     print(f"JS Script Error: {result.stderr}")
                     return None
                 try:
-                    out_str = result.stdout
-                    start = out_str.find('{')
-                    end = out_str.rfind('}')
-                    if start != -1 and end != -1:
-                        return json.loads(out_str[start:end+1])
+                    out_str = result.stdout.strip()
+                    # Grab the last line, which should be the JSON payload
+                    lines = [line for line in out_str.split('\n') if line.strip().startswith('{')]
+                    if lines:
+                        return json.loads(lines[-1])
                     return json.loads(out_str)
                 except json.JSONDecodeError:
                     print(f"JS Script Invalid Output: {result.stdout}")

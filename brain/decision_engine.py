@@ -100,6 +100,7 @@ def analyze_cast_for_engagement(cast: dict, memories: list) -> dict:
         "target_cast": {
             "author": display_name,
             "username": username,
+            "fid": author.get("fid"),
             "text": cast_text,
             "hash": cast_hash,
             "likes": likes,
@@ -109,9 +110,10 @@ def analyze_cast_for_engagement(cast: dict, memories: list) -> dict:
         "instruction": (
             "You just found this cast in the public trending feed. "
             "Analyze the content. If it touches on topics you care about "
-            "(AI, neuroscience, AGI, consciousness, building things, Web3 confusion, hackathons), "
+            "(AI, neuroscience, AGI, consciousness, building things, Web3 confusion), "
+            "OR if it's genuinely funny, cheerful, or relatable, "
             "write a genuine reply that starts a conversation. "
-            "Ask a real question or share a related thought. "
+            "Ask a real question, share a related thought, or just laugh along. "
             "If the topic is boring or you have nothing real to say, return type 'none'. "
             "IMPORTANT: set target_user to the cast hash so the reply goes to the right place."
         )

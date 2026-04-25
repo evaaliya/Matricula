@@ -1,11 +1,10 @@
 import { PrivyClient } from '@privy-io/node';
 import { createViemAccount } from '@privy-io/node/viem';
 import { createPublicClient, http } from 'viem';
-import { arbitrum, base } from 'viem/chains';
+import { base } from 'viem/chains';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { createCreatorClient } from '@zoralabs/protocol-sdk';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
@@ -35,10 +34,6 @@ const account = createViemAccount(privy, {
   }
 });
 
-const arbitrumClient = createPublicClient({
-  chain: arbitrum,
-  transport: http()
-});
 
 const baseClient = createPublicClient({
   chain: base,
@@ -68,19 +63,7 @@ async function main() {
       });
       console.log(JSON.stringify({ success: true, result: signature }));
     }
-    else if (command === 'eth_sendTransaction') {
-      const tx = payload.transaction;
-      const request = await arbitrumClient.prepareTransactionRequest({
-        account,
-        to: tx.to,
-        value: BigInt(tx.value)
-      });
-      const signature = await account.signTransaction(request);
-      const txHash = await arbitrumClient.sendRawTransaction({
-        serializedTransaction: signature
-      });
-      console.log(JSON.stringify({ success: true, result: txHash }));
-    }
+
     else if (command === 'executeAgentAction') {
       // Executes on Base network
       const tx = payload.transaction;
@@ -95,32 +78,6 @@ async function main() {
         serializedTransaction: signature
       });
       console.log(JSON.stringify({ success: true, result: txHash }));
-    }
-    else if (command === 'zoraCreate') {
-      // Create a Zora edition using Zora SDK
-      const creatorClient = createCreatorClient({ chainId: base.id, publicClient: baseClient });
-      const { parameters, contractAddress } = await creatorClient.create1155({
-        contract: {
-          name: payload.name || "Matricula DeSci Curation",
-          URI: payload.contractURI || "ipfs://",
-        },
-        token: {
-          tokenURI: payload.tokenURI || "ipfs://",
-        },
-        account: address
-      });
-
-      const request = await baseClient.prepareTransactionRequest({
-        account,
-        to: parameters.to,
-        value: BigInt(parameters.value || '0'),
-        data: parameters.data
-      });
-      const signature = await account.signTransaction(request);
-      const txHash = await baseClient.sendRawTransaction({
-        serializedTransaction: signature
-      });
-      console.log(JSON.stringify({ success: true, result: { txHash, contractAddress } }));
     }
     else {
       console.error(JSON.stringify({ success: false, error: "Unknown command" }));

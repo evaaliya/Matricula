@@ -58,5 +58,101 @@
     "treasury_score": 61,
     "priority": "patron",
     "wallet_balance": 0.000226808765132288
+  },
+  {
+    "timestamp": "2026-04-25T00:22:55.689417",
+    "followers": 5,
+    "following": 5,
+    "neynar_score": 0.22,
+    "engagement_rate": 0.46,
+    "influence_score": 8,
+    "patron_score": 0,
+    "treasury_score": 60,
+    "priority": "patron",
+    "wallet_balance": 0.0
+  },
+  {
+    "timestamp": "2026-04-25T10:03:38.802023",
+    "followers": 5,
+    "following": 5,
+    "neynar_score": 0.22,
+    "engagement_rate": 0.46,
+    "influence_score": 8,
+    "patron_score": 0,
+    "treasury_score": 60,
+    "priority": "patron",
+    "wallet_balance": 0.0
+  },
+  {
+    "timestamp": "2026-04-25T10:09:19.625012",
+    "followers": 5,
+    "following": 5,
+    "neynar_score": 0.22,
+    "engagement_rate": 0.46,
+    "influence_score": 8,
+    "patron_score": 0,
+    "treasury_score": 60,
+    "priority": "patron",
+    "wallet_balance": 0.0
+  },
+  {
+    "timestamp": "2026-04-25T10:18:25.847273",
+    "followers": 5,
+    "following": 5,
+    "neynar_score": 0.22,
+    "engagement_rate": 0.33,
+    "influence_score": 6,
+    "patron_score": 0,
+    "treasury_score": 60,
+    "priority": "patron",
+    "wallet_balance": 0.0
+  },
+  {
+    "timestamp": "2026-04-25T10:34:03.849902",
+    "followers": 5,
+    "following": 5,
+    "neynar_score": 0.22,
+    "engagement_rate": 0.33,
+    "influence_score": 6,
+    "patron_score": 0,
+    "treasury_score": 60,
+    "priority": "patron",
+    "wallet_balance": 0.0
+  },
+  {
+    "timestamp": "2026-04-25T10:39:26.813929",
+    "followers": 5,
+    "following": 5,
+    "neynar_score": 0.22,
+    "engagement_rate": 0.33,
+    "influence_score": 6,
+    "patron_score": 0,
+    "treasury_score": 60,
+    "priority": "patron",
+    "wallet_balance": 0.0
+  },
+  {
+    "timestamp": "2026-04-25T18:32:38.035424",
+    "followers": 5,
+    "following": 5,
+    "neynar_score": 0.22,
+    "engagement_rate": 0.33,
+    "influence_score": 6,
+    "patron_score": 0,
+    "treasury_score": 60,
+    "priority": "patron",
+    "wallet_balance": 0.0
+  },
+  {
+    "timestamp": "2026-04-25T18:41:02.964087",
+    "followers": 5,
+    "following": 5,
+    "neynar_score": 0.22,
+    "engagement_rate": 0.33,
+    "influence_score": 6,
+    "patron_score": 0,
+    "treasury_score": 60,
+    "priority": "patron",
+    "wallet_balance": 0.0
   }
 ]

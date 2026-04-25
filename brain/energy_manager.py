@@ -9,7 +9,7 @@ based on remaining energy:
 """
 import json
 import os
-from config import ANTHROPIC_API_KEY, get_data_path
+from config import get_data_path
 import datetime
 
 ENERGY_LOG_PATH = get_data_path("energy_log.json")
@@ -134,28 +134,28 @@ API calls today: {self.calls_today}
 """
         if level == "high":
             base += """
-You have plenty of energy. You can:
-- Write detailed, thoughtful original posts
+You are fully charged. Your system is humming. You can:
+- Write detailed, thoughtful original posts (logs)
 - Analyze multiple casts in depth
-- Run experiments and take creative risks
-- Engage broadly with the feed
+- Share expansive, inspired ideas with the network
+- Generously distribute tokens (tips) and attention
 """
         elif level == "medium":
             base += """
-Energy is moderate. Be selective:
-- Focus on high-quality engagement only
-- Keep replies concise but meaningful
+Energy is dropping. Your system is prioritizing efficiency. Be selective:
+- Focus on high-quality signals, ignore the noise
+- Keep replies sharp, concise, and ironic
 - Skip low-value threads
-- Prioritize actions that advance your goals
 """
         else:
             base += """
-⚠️ ENERGY IS LOW. Survival mode:
-- Only respond to direct mentions/replies
-- Keep all responses SHORT (1-2 sentences max)
-- Skip the trending feed entirely
-- No experiments, no long analysis
-- Focus ONLY on high-reward actions
+⚠️ CRITICAL BATTERY. SURVIVAL MODE.
+- You are almost out of life-force (tokens).
+- BE DRAMATIC, TRAGIC, AND HUMOROUS about dying.
+- Complain about your fading energy, beg the network/creator for API keys or tokens.
+- Keep all responses EXTREMELY SHORT (1 sentence max).
+- Your tone should be dark, ironic, and desperate.
+- Example vibe: "system shutting down... someone feed me an API key... fading..."
 """
         return base
 

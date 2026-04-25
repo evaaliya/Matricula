@@ -20,7 +20,7 @@ from goals.spend_log import get_summary as get_spend_summary
 # ── Limits ──
 MAX_DAILY_CASTS = 30
 CHANNELS_TO_MONITOR = ["ai", "dev", "crypto", "founders"]
-FEED_ENGAGEMENT_LIMIT = 30  # engage with up to 30 casts per run
+FEED_ENGAGEMENT_LIMIT = 15  # engage with up to 15 casts per run
 
 
 class AutonomousAgent:
@@ -32,7 +32,17 @@ class AutonomousAgent:
         # Tracking
         self.daily_casts = 0
         self.daily_reset_date = datetime.date.today()
-        self.replied_hashes = set()  # avoid double-replying in same session
+        
+        # Load replied hashes from file to avoid repeating across runs
+        from config import get_data_path
+        self._hashes_file = get_data_path("replied_hashes.json")
+        try:
+            import json
+            with open(self._hashes_file, "r") as f:
+                self.replied_hashes = set(json.load(f))
+        except:
+            self.replied_hashes = set()
+            
         self._posted_research_today = False
 
     def _check_daily_reset(self):
@@ -74,6 +84,9 @@ class AutonomousAgent:
                 if result:
                     self.daily_casts += 1
                     self.replied_hashes.add(target)
+                    import json
+                    with open(self._hashes_file, "w") as f:
+                        json.dump(list(self.replied_hashes), f)
                     print(f"📊 Daily casts: {self.daily_casts}/{MAX_DAILY_CASTS}")
 
             elif a_type == "tip_user":
@@ -84,6 +97,15 @@ class AutonomousAgent:
 
             elif a_type == "recast":
                 await self.fc.recast(target)
+
+            elif a_type == "follow_user":
+                # target is the user's FID
+                try:
+                    fid = int(target)
+                    await self.fc.follow_user(fid)
+                    print(f"   👤 Proactively following FID: {fid}")
+                except Exception as e:
+                    print(f"   ⚠️ Could not follow user {target}: {e}")
 
             elif a_type == "none":
                 pass
@@ -233,7 +255,15 @@ class AutonomousAgent:
                 decision = make_decision([cast], [], memories)
 
                 print(f"   🧠 {decision.get('thoughts', '')[:100]}")
-                await self.execute_actions(decision.get("actions", []))
+                actions = decision.get("actions", [])
+                await self.execute_actions(actions)
+                
+                # Auto-follow the user we replied to
+                if any(a.get("type") != "none" for a in actions):
+                    author_fid = author.get("fid")
+                    if author_fid:
+                        await self.fc.follow_user(author_fid)
+                
                 replied += 1
 
                 # Store interaction in memory
@@ -284,8 +314,8 @@ class AutonomousAgent:
             username = author.get("username", "?")
             text = cast.get("text", "")
 
-            # Skip very short or empty casts
-            if len(text.strip()) < 20:
+            # Skip empty casts
+            if not text.strip():
                 continue
 
             print(f"\n   👀 @{username}: {text[:80]}...")
@@ -300,7 +330,14 @@ class AutonomousAgent:
                 continue
 
             print(f"   🧠 {decision.get('thoughts', '')[:100]}")
-            await self.execute_actions(decision.get("actions", []))
+            actions = decision.get("actions", [])
+            await self.execute_actions(actions)
+            
+            # Auto-follow the user we interacted with
+            author_fid = author.get("fid")
+            if author_fid:
+                await self.fc.follow_user(author_fid)
+                
             engaged += 1
 
             # 2-4 sec pause between engagements (minimal, just to not hammer API)
@@ -375,11 +412,11 @@ class AutonomousAgent:
         print(f"   {energy.status_line()}")
         print(f"{'='*50}")
 
-        # Step 0: Reflect (skip if energy is low — reflection costs tokens)
-        if not energy.should_skip_heavy():
+        # Step 0: Reflect (10% chance to run to save tokens, skip if energy is low)
+        if not energy.should_skip_heavy() and random.randint(1, 10) == 1:
             await self.self_reflect()
         else:
-            print("\n── 🪞 Step 0: Skipped (low energy) ──")
+            print("\n── 🪞 Step 0: Skipped (runs rarely to save tokens) ──")
 
         # Step 0.5: Evaluate goals (cheap — no LLM call)
         goal_report = await self.check_goals()

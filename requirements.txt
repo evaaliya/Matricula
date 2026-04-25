@@ -7,3 +7,4 @@ pydantic
 eth-account
 cryptography
 pynacl
+openai

@@ -88,13 +88,6 @@ IMPORTANT: You MUST return your response as a JSON object with the following str
         if actions and actions[0].get("type") == "publish_cast":
             cast_text = actions[0].get("content", "")
             
-            # DeSci Curation Module logic
-            if source_type == "arxiv":
-                from research.desci_module import evaluateAndMint
-                desci_status = await evaluateAndMint(item)
-                if desci_status:
-                    cast_text += desci_status
-
             # Ensure link is included
             if url and url not in cast_text:
                 # Trim if needed to fit link
